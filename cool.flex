@@ -43,11 +43,29 @@ extern YYSTYPE cool_yylval;
  *  Add Your own definitions here
  */
 
+    static int max
+
 %}
 
 /*
  * Define names for regular expressions here.
  */
+
+DIGIT           = [0-9]
+WHITESPACE      = [ \n\f\r\t\v]
+ENDL            = \n
+LINECOMMENT     = --[^\n]*
+STRINGBEG       = \"
+STRINGEND       = \"
+STRINGCHAR      = [^\"\0\n\\]+
+TYPENAME        = [A-Z][A-z0-9_]
+OBJECTNAME      = [a-z][A-z0-9_]
+
+
+
+
+
+
 
 DARROW          =>
 
