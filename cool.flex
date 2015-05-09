@@ -60,7 +60,27 @@ STRINGEND       = \"
 STRINGCHAR      = [^\"\0\n\\]+
 TYPENAME        = [A-Z][A-z0-9_]
 OBJECTNAME      = [a-z][A-z0-9_]
-
+CLASS           = [Cc][Ll][Aa][Ss][Ss]
+ELSE            = [Ee][Ll][Ss][Ee]
+IF              = [Ii][Ff]
+FI              = [Ff][Ii]
+IN              = [Ii][Nn]
+INHERITS        = [Ii][Nn][Hh][Ee][Rr][Ii][Tt][Ss]
+ISVOID          = [Ii][Ss][Vv][Oo][Ii][Dd]
+LET             = [Ll][Ee][Tt]
+LOOP            = [Ll][Oo][Oo][Pp]
+POOL            = [Pp][Oo][Oo][Ll]
+THEN            = [Tt][Hh][Ee][Nn]
+WHILE           = [Ww][Hh][Ii][Ll][Ee]
+CASE            = [Cc][Aa][Ss][Ee]
+ESAC            = [Ee][Ss][Aa][Cc]
+NEW             = [Nn][Ee][Ww]
+OF              = [Oo][Ff]
+NOT             = [Nn][Oo][Tt]
+TRUE            = t[Rr][Uu][Ee]
+FALSE           = f[Aa][Ll][Ss][Ee]
+AT              = @
+ANYCHAR         = .|\r
 
 
 
