@@ -52,17 +52,7 @@ extern YYSTYPE cool_yylval;
  *  Start conditions
  */
 
-%x STRING
-%%
-
-%x STRING_OVERFLOW
-%%
-
-%x STRING_NULL_ERR
-%%
-
-%x COMMENT
-%%
+%x STRING STRING_OVERFLOW STRING_NULL_ERR COMMENT
 
 /*
  * Define names for regular expressions here.
@@ -76,30 +66,30 @@ COMMENTBEGIN    \(\*
 COMMENTEND      \*\)
 STRINGBEG       \"
 STRINGEND       \"
-STRINGCHARS     [^\"\0\n\\]+
-TYPENAME        [A-Z][A-z0-9_]
-OBJECTNAME      [a-z][A-z0-9_]
-CLASS           [Cc][Ll][Aa][Ss][Ss]
-ELSE            [Ee][Ll][Ss][Ee]
-IF              [Ii][Ff]
-FI              [Ff][Ii]
-IN              [Ii][Nn]
-INHERITS        [Ii][Nn][Hh][Ee][Rr][Ii][Tt][Ss]
-ISVOID          [Ii][Ss][Vv][Oo][Ii][Dd]
-LET             [Ll][Ee][Tt]
-LOOP            [Ll][Oo][Oo][Pp]
-POOL            [Pp][Oo][Oo][Ll]
-THEN            [Tt][Hh][Ee][Nn]
-WHILE           [Ww][Hh][Ii][Ll][Ee]
-CASE            [Cc][Aa][Ss][Ee]
-ESAC            [Ee][Ss][Aa][Cc]
-NEW             [Nn][Ee][Ww]
-OF              [Oo][Ff]
-NOT             [Nn][Oo][Tt]
-TRUE            t[Rr][Uu][Ee]
-FALSE           f[Aa][Ll][Ss][Ee]
-AT              @
-ANYCHAR         .|\r
+STRINGCHAR     [^\"\0\n\\]
+TYPENAME       [A-Z][A-z0-9_]
+OBJECTNAME     [a-z][A-z0-9_]
+CLASS          [Cc][Ll][Aa][Ss][Ss]
+ELSE           [Ee][Ll][Ss][Ee]
+IF             [Ii][Ff]
+FI             [Ff][Ii]
+IN             [Ii][Nn]
+INHERITS       [Ii][Nn][Hh][Ee][Rr][Ii][Tt][Ss]
+ISVOID         [Ii][Ss][Vv][Oo][Ii][Dd]
+LET            [Ll][Ee][Tt]
+LOOP           [Ll][Oo][Oo][Pp]
+POOL           [Pp][Oo][Oo][Ll]
+THEN           [Tt][Hh][Ee][Nn]
+WHILE          [Ww][Hh][Ii][Ll][Ee]
+CASE           [Cc][Aa][Ss][Ee]
+ESAC           [Ee][Ss][Aa][Cc]
+NEW            [Nn][Ee][Ww]
+OF             [Oo][Ff]
+NOT            [Nn][Oo][Tt]
+TRUE           t[Rr][Uu][Ee]
+FALSE          f[Aa][Ll][Ss][Ee]
+AT             @
+ANYCHAR        .|\r
 
 DARROW          =>
 MULT            \*
@@ -197,6 +187,7 @@ RBRACE          \}
   *  \n \t \b \f, the result is c.
   *
   */
+
 <INITIAL>{STRINGBEGIN}    { str_size = 0; BEGIN(STRING); }
 
 <STRING>\x00 {
@@ -310,7 +301,7 @@ RBRACE          \}
 
 <STRING>\\                { ; }
 
-<STRING>{STRINGCHARS} {
+<STRING>{STRINGCHAR}+ {
     if (str_size >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
@@ -319,11 +310,15 @@ RBRACE          \}
     }
 }
 
-<STRING>\n {
-    string_buf.setLength(0);
-    BEGIN(YYINITIAL);
-    fprintf(stderr, "ERROR: Unterminated string constant\n", curr_lineno);
-    return ERROR;
+<STRING>\\{STRINGCHAR} {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        /* Append character after '\\' */
+        string_buf[str_size] = yytext[1]);
+        str_size++;
+    }
 }
 
 <STRING>{STRINGEND} {
@@ -332,20 +327,32 @@ RBRACE          \}
     return STRINGEND;
 }
 
+<STRING>\n {
+    string_buf.setLength(0);
+    BEGIN(YYINITIAL);
+    fprintf(stderr, "ERROR: Unterminated string constant\n");
+    return ERROR;
+}
+
 <STRING_OVERFLOW>{STRINGEND} {
     BEGIN(INITIAL);
-    fprintf(stderr, "ERROR: String constant too long\n", curr_lineno);
+    fprintf(stderr, "ERROR: String constant too long\n");
     return ERROR;
 }
 
 <STRING_NULL_ERR>{STRINGEND} {
     BEGIN(INITIAL);
-    fprintf(stderr, "ERROR: String contains null character\n", curr_lineno);
+    fprintf(stderr, "ERROR: String contains null character\n");
     return ERROR;
 }
 
+/*
+ *  If after all that it comes to this, somehting is wrong.
+ */
 
-
-
+.|\n {
+    fprintf(stderr, "ERROR: Invalid character\n");
+    return ERROR;
+}
 %%
 
