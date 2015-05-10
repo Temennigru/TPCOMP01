@@ -91,25 +91,25 @@ FALSE          f[Aa][Ll][Ss][Ee]
 AT             @
 ANYCHAR        .|\r
 
-DARROW          =>
-MULT            \*
-DOT             \.
-SEMI            ;
-DIV             \/
-PLUS            \+
+DARROW         =>
+MULT           \*
+DOT            \.
+SEMI           ;
+DIV            \/
+PLUS           \+
 
-MINUS           -
-NEG             ~
-LPAREN          \(
-RPAREN          \)
-LT              \<
-LE              <=
-COMMA           ,
-EQ              =
-ASSIGN          <-
-COLON           \:
-LBRACE          \{
-RBRACE          \}
+MINUS          -
+NEG            ~
+LPAREN         \(
+RPAREN         \)
+LT             \<
+LE             <=
+COMMA          ,
+EQ             =
+ASSIGN         <-
+COLON          \:
+LBRACE         \{
+RBRACE         \}
 %%
 
  /*
@@ -180,6 +180,8 @@ RBRACE          \}
   * which must begin with a lower-case letter.
   */
 
+<YYINITIAL>{TYPEID}                  { cool_yylval.cValue = strdup(yytext); return TYPEID; }
+<YYINITIAL>{OBJECTID}                { cool_yylval.cValue = strdup(yytext); return OBJECT; }
 
  /*
   *  String constants (C syntax)
@@ -310,6 +312,10 @@ RBRACE          \}
     }
 }
 
+/*
+ *  Escaped regular characters
+ */
+
 <STRING>\\{STRINGCHAR} {
     if (str_size >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
@@ -347,6 +353,12 @@ RBRACE          \}
 }
 
 /*
+ *  Integer constant
+ */
+
+<YYINITIAL>{DIGIT}+       { cool_yylval.iValue=atoi(yytext); return INT_CONST; }
+
+/*
  *  If after all that it comes to this, somehting is wrong.
  */
 
@@ -355,4 +367,3 @@ RBRACE          \}
     return ERROR;
 }
 %%
-
