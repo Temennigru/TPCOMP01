@@ -36,6 +36,9 @@ char *string_buf_ptr;
 
 extern int curr_lineno;
 extern int verbose_flag;
+extern int comment_count;
+extern bool is_comment;
+extern int str_size;
 
 extern YYSTYPE cool_yylval;
 
@@ -43,9 +46,23 @@ extern YYSTYPE cool_yylval;
  *  Add Your own definitions here
  */
 
-    static int max
-
 %}
+
+/*
+ *  Start conditions
+ */
+
+%x STRING
+%%
+
+%x STRING_OVERFLOW
+%%
+
+%x STRING_NULL_ERR
+%%
+
+%x COMMENT
+%%
 
 /*
  * Define names for regular expressions here.
@@ -55,6 +72,8 @@ DIGIT           [0-9]
 WHITESPACE      [ \n\f\r\t\v]
 ENDL            \n
 LINECOMMENT     --[^\n]*
+COMMENTBEGIN    \(\*
+COMMENTEND      \*\)
 STRINGBEG       \"
 STRINGEND       \"
 STRINGCHARS     [^\"\0\n\\]+
@@ -83,18 +102,88 @@ AT              @
 ANYCHAR         .|\r
 
 DARROW          =>
+MULT            \*
+DOT             \.
+SEMI            ;
+DIV             \/
+PLUS            \+
 
+MINUS           -
+NEG             ~
+LPAREN          \(
+RPAREN          \)
+LT              \<
+LE              <=
+COMMA           ,
+EQ              =
+ASSIGN          <-
+COLON           \:
+LBRACE          \{
+RBRACE          \}
 %%
 
  /*
   *  Nested comments
+  *  Bool variable for comment mode
   */
+
+<INITIAL, COMMENT>COMMENTBEGIN    { comment_count++; is_comment = true; }
+<COMMENT>         COMMENTEND      { comment_count--; if(comment_count == 0) { is_comment = false; } }
 
 
  /*
   *  The multiple-character operators.
   */
-{DARROW}		{ return (DARROW); }
+
+
+/* ignore these */
+{WHITESPACE}    { break; }
+{ANYCHAR}       { break; }
+{LINECOMMENT}   { curr_lineno++; break; }
+
+{ENDL}          { curr_lineno++; }
+
+<INITIAL>{CLASS}          { return (CLASS); }
+<INITIAL>{ELSE}           { return (ELSE); }
+<INITIAL>{IF}             { return (IF); }
+<INITIAL>{FI}             { return (FI); }
+<INITIAL>{IN}             { return (IN); }
+<INITIAL>{INHERITS}       { return (INHERITS); }
+<INITIAL>{ISVOID}         { return (ISVOID); }
+<INITIAL>{LET}            { return (LET); }
+<INITIAL>{LOOP}           { return (LOOP); }
+<INITIAL>{POOL}           { return (POOL); }
+<INITIAL>{THEN}           { return (THEN); }
+<INITIAL>{WHILE}          { return (WHILE); }
+<INITIAL>{CASE}           { return (CASE); }
+<INITIAL>{ESAC}           { return (ESAC); }
+<INITIAL>{NEW}            { return (NEW); }
+<INITIAL>{OF}             { return (OF); }
+
+<INITIAL>{NOT}            { return (NOT); }
+<INITIAL>{TRUE}           { return (TRUE); }
+<INITIAL>{FALSE}          { return (FALSE); }
+<INITIAL>{AT}             { return (AT); }
+<INITIAL>{DARROW}		      { return (DARROW); }
+<INITIAL>{MULT}           { return (MULT); }
+<INITIAL>{DOT}            { return (DOT); }
+<INITIAL>{SEMI}           { return (SEMI); }
+<INITIAL>{DIV}            { return (DIV); }
+
+<INITIAL>{PLUS}           { return (PLUS); }
+<INITIAL>{MINUS}          { return (MINUS); }
+<INITIAL>{NEG}            { return (NEG); }
+<INITIAL>{LPAREN}         { return (LPAREN); }
+<INITIAL>{RPAREN}         { return (RPAREN); }
+<INITIAL>{LT}             { return (LT); }
+<INITIAL>{LE}             { return (LE); }
+<INITIAL>{COMMA}          { return (COMMA); }
+<INITIAL>{EQ}             { return (EQ); }
+<INITIAL>{ASSIGN}         { return (ASSIGN); }
+<INITIAL>{COLON}          { return (COLON); }
+<INITIAL>{LBRACE}         { return (LBRACE); }
+<INITIAL>{RBRACE}         { return (RBRACE); }
+
 
  /*
   * Keywords are case-insensitive except for the values true and false,
@@ -108,6 +197,155 @@ DARROW          =>
   *  \n \t \b \f, the result is c.
   *
   */
+<INITIAL>{STRINGBEGIN}    { str_size = 0; BEGIN(STRING); }
+
+<STRING>\x00 {
+    BEGIN(STRING_NULL_ERR);
+    break;
+}
+<STRING>\\\\b {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\\'; string_buf[str_size] = 'b'); str_size++;
+    }
+}
+<STRING>\\b {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\b');
+        str_size++;
+    }
+}
+<STRING>\\\\f {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\\';
+        string_buf[str_size] = 'f');
+        str_size++;
+    }
+}
+<STRING>\\f {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\f');
+        str_size++;
+    }
+}
+<STRING>\\\\t {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\\';
+        string_buf[str_size] = 't');
+        str_size++;
+    }
+}
+<STRING>\\t {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\t');
+        str_size++;
+    }
+}
+<STRING>\\\\n {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\\';
+        string_buf[str_size] = 'n');
+        str_size++;
+    }
+}
+<STRING>\\n {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\n');
+        str_size++;
+    }
+}
+
+<STRING>\\\n {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\n');
+        str_size++;
+    }
+}
+
+<STRING>\\\" {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\"');
+        str_size++;
+    }
+}
+
+<STRING>\\\\ {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\\');
+        str_size++;
+    }
+}
+
+<STRING>\\                { ; }
+
+<STRING>{STRINGCHARS} {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        strcpy(&(string_buf[str_size]), yytext);
+    }
+}
+
+<STRING>\n {
+    string_buf.setLength(0);
+    BEGIN(YYINITIAL);
+    fprintf(stderr, "ERROR: Unterminated string constant\n", curr_lineno);
+    return ERROR;
+}
+
+<STRING>{STRINGEND} {
+    BEGIN(YYINITIAL);
+    String s = string_buf.toString();
+    return STRINGEND;
+}
+
+<STRING_OVERFLOW>{STRINGEND} {
+    BEGIN(INITIAL);
+    fprintf(stderr, "ERROR: String constant too long\n", curr_lineno);
+    return ERROR;
+}
+
+<STRING_NULL_ERR>{STRINGEND} {
+    BEGIN(INITIAL);
+    fprintf(stderr, "ERROR: String contains null character\n", curr_lineno);
+    return ERROR;
+}
+
+
 
 
 %%
+
