@@ -117,8 +117,8 @@ RBRACE         \}
   *  Bool variable for comment mode
   */
 
-<INITIAL, COMMENT>COMMENTBEGIN    { comment_count++; is_comment = true; }
-<COMMENT>         COMMENTEND      { comment_count--; if(comment_count == 0) { is_comment = false; } }
+<INITIAL, COMMENT>COMMENTBEGIN    { comment_count++; BEGIN(COMMENT); }
+<COMMENT>         COMMENTEND      { comment_count--; if(comment_count == 0) { BEGIN(INITIAL); } }
 
 
  /*
@@ -180,8 +180,8 @@ RBRACE         \}
   * which must begin with a lower-case letter.
   */
 
-<YYINITIAL>{TYPEID}                  { cool_yylval.cValue = strdup(yytext); return TYPEID; }
-<YYINITIAL>{OBJECTID}                { cool_yylval.cValue = strdup(yytext); return OBJECT; }
+<INITIAL>{TYPEID}                  { cool_yylval.cValue = strdup(yytext); return TYPEID; }
+<INITIAL>{OBJECTID}                { cool_yylval.cValue = strdup(yytext); return OBJECT; }
 
  /*
   *  String constants (C syntax)
