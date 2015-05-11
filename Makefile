@@ -2,10 +2,10 @@ CC := gcc
 LEX := flex
 RM := rm -rf
 OS := $(shell uname -s)
-TARGET := cool_lex
-LEX_SOURCES := cool.lex
+TARGET := tpcomp01
+LEX_SOURCES := cool.flex
 C_SOURCES := 
-AUTO_C = $(LEX_SOURCES:.lex=.c)
+AUTO_C = $(LEX_SOURCES:.flex=.c)
 OBJECTS = $(AUTO_C:.c=.o) $(C_SOURCES:.c=.o)
 
 .PHONY: clean
@@ -16,7 +16,7 @@ $(TARGET): $(OBJECTS)
 $(OBJECTS): %.o : %.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-$(AUTO_C): %.c : %.lex
+$(AUTO_C): %.c : %.flex
 	$(LEX) $(LFLAGS) -o $@ $^
 
 clean:
