@@ -31,6 +31,11 @@ extern FILE *fin; /* we read from this file */
 	if ( (result = fread( (char*)buf, sizeof(char), max_size, fin)) < 0) \
 		YY_FATAL_ERROR( "read() in flex scanner failed");
 
+typedef union MY_YYSTYPE {
+    int iValue;
+    char* cValue;
+} MY_YYSTYPE;
+
 char string_buf[MAX_STR_CONST]; /* to assemble string constants */
 char *string_buf_ptr;
 
@@ -39,7 +44,7 @@ extern int verbose_flag;
 extern int comment_count;
 extern int str_size;
 
-extern YYSTYPE cool_yylval;
+extern MY_YYSTYPE my_yylval;
 
 /*
  *  Add Your own definitions here
@@ -182,8 +187,8 @@ RBRACE         \}
   * which must begin with a lower-case letter.
   */
 
-<INITIAL>{TYPENAME}                  { cool_yylval.cValue = strdup(yytext); return TYPENAME; }
-<INITIAL>{OBJECTNAME}                { cool_yylval.cValue = strdup(yytext); return OBJECTNAME; }
+<INITIAL>{TYPENAME}                  { my_yylval.cValue = strdup(yytext); return TYPENAME; }
+<INITIAL>{OBJECTNAME}                { my_yylval.cValue = strdup(yytext); return OBJECTNAME; }
 
  /*
   *  String constants (C syntax)
@@ -331,12 +336,12 @@ RBRACE         \}
 
 <STRING>{STRINGEND} {
     BEGIN(INITIAL);
-    cool_yylval.cValue = strdup(string_buf);;
+    my_yylval.cValue = strdup(string_buf);;
     return STRINGEND;
 }
 
 <STRING>\n {
-    string_buf.setLength(0);
+    str_size = 0;
     BEGIN(INITIAL);
     fprintf(stderr, "ERROR: Unterminated string constant\n");
     return ERROR;
@@ -358,7 +363,7 @@ RBRACE         \}
   *  Integer constant
   */
 
-<INITIAL>{DIGIT}+       { cool_yylval.iValue=atoi(yytext); return INT_CONST; }
+<INITIAL>{DIGIT}+       { my_yylval.iValue=atoi(yytext); return INT_CONST; }
 
  /*
   *  If after all that it comes to this, somehting is wrong.

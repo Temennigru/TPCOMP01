@@ -4,6 +4,9 @@
 *.obj
 *.elf
 
+# Lex intermediate files
+*.d
+
 # Precompiled Headers
 *.gch
 *.pch

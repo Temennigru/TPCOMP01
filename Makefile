@@ -1,4 +1,5 @@
 
+ASSN = 2
 CLASS= cs143
 CLASSDIR?= .
 LIB= -lfl
