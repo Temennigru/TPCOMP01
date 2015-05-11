@@ -203,7 +203,7 @@ RBRACE         \}
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\\'; string_buf[str_size] = 'b'); str_size++;
+        string_buf[str_size] = '\\'; string_buf[str_size] = 'b'; str_size++;
     }
 }
 <STRING>\\b {
@@ -211,7 +211,7 @@ RBRACE         \}
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\b');
+        string_buf[str_size] = '\b';
         str_size++;
     }
 }
@@ -221,7 +221,7 @@ RBRACE         \}
         break;
     } else {
         string_buf[str_size] = '\\';
-        string_buf[str_size] = 'f');
+        string_buf[str_size] = 'f';
         str_size++;
     }
 }
@@ -230,7 +230,7 @@ RBRACE         \}
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\f');
+        string_buf[str_size] = '\f';
         str_size++;
     }
 }
@@ -240,7 +240,7 @@ RBRACE         \}
         break;
     } else {
         string_buf[str_size] = '\\';
-        string_buf[str_size] = 't');
+        string_buf[str_size] = 't';
         str_size++;
     }
 }
@@ -249,7 +249,7 @@ RBRACE         \}
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\t');
+        string_buf[str_size] = '\t';
         str_size++;
     }
 }
@@ -259,7 +259,7 @@ RBRACE         \}
         break;
     } else {
         string_buf[str_size] = '\\';
-        string_buf[str_size] = 'n');
+        string_buf[str_size] = 'n';
         str_size++;
     }
 }
@@ -268,7 +268,7 @@ RBRACE         \}
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\n');
+        string_buf[str_size] = '\n';
         str_size++;
     }
 }
@@ -278,7 +278,7 @@ RBRACE         \}
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\n');
+        string_buf[str_size] = '\n';
         str_size++;
     }
 }
@@ -288,7 +288,7 @@ RBRACE         \}
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\"');
+        string_buf[str_size] = '\"';
         str_size++;
     }
 }
@@ -298,7 +298,7 @@ RBRACE         \}
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\\');
+        string_buf[str_size] = '\\';
         str_size++;
     }
 }
@@ -324,14 +324,14 @@ RBRACE         \}
         break;
     } else {
         /* Append character after '\\' */
-        string_buf[str_size] = yytext[1]);
+        string_buf[str_size] = yytext[1];
         str_size++;
     }
 }
 
 <STRING>{STRINGEND} {
     BEGIN(INITIAL);
-    String s = string_buf.toString();
+    cool_yylval.cValue = strdup(string_buf);;
     return STRINGEND;
 }
 
