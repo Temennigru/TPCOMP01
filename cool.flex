@@ -37,7 +37,6 @@ char *string_buf_ptr;
 extern int curr_lineno;
 extern int verbose_flag;
 extern int comment_count;
-extern bool is_comment;
 extern int str_size;
 
 extern YYSTYPE cool_yylval;
