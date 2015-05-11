@@ -62,7 +62,7 @@ DIGIT           [0-9]
 WHITESPACE      [ \n\f\r\t\v]
 ENDL            \n
 LINECOMMENT     --[^\n]*
-COMMENTBEGIN    \(\*
+COMMENTBEG      \(\*
 COMMENTEND      \*\)
 STRINGBEG       \"
 STRINGEND       \"
@@ -117,21 +117,24 @@ RBRACE         \}
   *  Bool variable for comment mode
   */
 
-<INITIAL, COMMENT>COMMENTBEGIN    { comment_count++; BEGIN(COMMENT); }
-<COMMENT>         COMMENTEND      { comment_count--; if(comment_count == 0) { BEGIN(INITIAL); } }
+<COMMENT>{COMMENTBEG}               { comment_count++; BEGIN(COMMENT); }
+<INITIAL>{COMMENTBEG}               { comment_count++; BEGIN(COMMENT); }
+<COMMENT>{COMMENTEND}               { comment_count--; if(comment_count == 0) { BEGIN(INITIAL); } }
+<COMMENT>{ANYCHAR}                  { break; }
 
 
  /*
   *  The multiple-character operators.
   */
 
-
-/* ignore these */
-{WHITESPACE}    { break; }
-{ANYCHAR}       { break; }
-{LINECOMMENT}   { curr_lineno++; break; }
+ /*
+  *  Ignore these
+  */
 
 {ENDL}          { curr_lineno++; }
+
+{WHITESPACE}    { break; }
+{LINECOMMENT}   { curr_lineno++; break; }
 
 <INITIAL>{CLASS}          { return (CLASS); }
 <INITIAL>{ELSE}           { return (ELSE); }
@@ -180,8 +183,8 @@ RBRACE         \}
   * which must begin with a lower-case letter.
   */
 
-<INITIAL>{TYPEID}                  { cool_yylval.cValue = strdup(yytext); return TYPEID; }
-<INITIAL>{OBJECTID}                { cool_yylval.cValue = strdup(yytext); return OBJECT; }
+<INITIAL>{TYPENAME}                  { cool_yylval.cValue = strdup(yytext); return TYPENAME; }
+<INITIAL>{OBJECTNAME}                { cool_yylval.cValue = strdup(yytext); return OBJECTNAME; }
 
  /*
   *  String constants (C syntax)
@@ -190,7 +193,7 @@ RBRACE         \}
   *
   */
 
-<INITIAL>{STRINGBEGIN}    { str_size = 0; BEGIN(STRING); }
+<INITIAL>{STRINGBEG}    { str_size = 0; BEGIN(STRING); }
 
 <STRING>\x00 {
     BEGIN(STRING_NULL_ERR);
@@ -312,9 +315,9 @@ RBRACE         \}
     }
 }
 
-/*
- *  Escaped regular characters
- */
+ /*
+  *  Escaped regular characters
+  */
 
 <STRING>\\{STRINGCHAR} {
     if (str_size >= MAX_STR_CONST) {
@@ -328,14 +331,14 @@ RBRACE         \}
 }
 
 <STRING>{STRINGEND} {
-    BEGIN(YYINITIAL);
+    BEGIN(INITIAL);
     String s = string_buf.toString();
     return STRINGEND;
 }
 
 <STRING>\n {
     string_buf.setLength(0);
-    BEGIN(YYINITIAL);
+    BEGIN(INITIAL);
     fprintf(stderr, "ERROR: Unterminated string constant\n");
     return ERROR;
 }
@@ -352,15 +355,15 @@ RBRACE         \}
     return ERROR;
 }
 
-/*
- *  Integer constant
- */
+ /*
+  *  Integer constant
+  */
 
-<YYINITIAL>{DIGIT}+       { cool_yylval.iValue=atoi(yytext); return INT_CONST; }
+<INITIAL>{DIGIT}+       { cool_yylval.iValue=atoi(yytext); return INT_CONST; }
 
-/*
- *  If after all that it comes to this, somehting is wrong.
- */
+ /*
+  *  If after all that it comes to this, somehting is wrong.
+  */
 
 .|\n {
     fprintf(stderr, "ERROR: Invalid character\n");
