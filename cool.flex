@@ -367,3 +367,22 @@ RBRACE         \}
     return ERROR;
 }
 %%
+
+#include <string.h>
+#include <stdio.h>
+
+int main(int argc, char** argv) {
+	if(argc > 2 && strncmp(argv[1], "-i", 2) != 0) {
+		int filec;
+		
+		for(filec = 2; filec <= argc-1; filec++) {
+			yyin = fopen(argv[filec], "r");
+			yylex();
+		}
+	} else {
+		printf("Invalid input.\nUsage: tpcomp01 -i [files]\n");
+		return -1;
+	}
+	
+	return 0;
+}
