@@ -203,6 +203,7 @@ RBRACE         \}
     BEGIN(STRING_NULL_ERR);
     break;
 }
+
 <STRING>\\\\b {
     if (str_size >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
@@ -211,6 +212,7 @@ RBRACE         \}
         string_buf[str_size] = '\\'; string_buf[str_size] = 'b'; str_size++;
     }
 }
+
 <STRING>\\b {
     if (str_size >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
@@ -220,6 +222,7 @@ RBRACE         \}
         str_size++;
     }
 }
+
 <STRING>\\\\f {
     if (str_size >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
@@ -230,6 +233,7 @@ RBRACE         \}
         str_size++;
     }
 }
+
 <STRING>\\f {
     if (str_size >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
@@ -239,6 +243,7 @@ RBRACE         \}
         str_size++;
     }
 }
+
 <STRING>\\\\t {
     if (str_size >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
@@ -249,6 +254,7 @@ RBRACE         \}
         str_size++;
     }
 }
+
 <STRING>\\t {
     if (str_size >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
@@ -258,6 +264,7 @@ RBRACE         \}
         str_size++;
     }
 }
+
 <STRING>\\\\n {
     if (str_size >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
@@ -268,6 +275,7 @@ RBRACE         \}
         str_size++;
     }
 }
+
 <STRING>\\n {
     if (str_size >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
@@ -336,7 +344,7 @@ RBRACE         \}
 
 <STRING>{STRINGEND} {
     BEGIN(INITIAL);
-    my_yylval.cValue = strdup(string_buf);;
+    my_yylval.cValue = strdup(string_buf);
     return STRINGEND;
 }
 
@@ -365,6 +373,32 @@ RBRACE         \}
 
 <INITIAL>{DIGIT}+       { my_yylval.iValue=atoi(yytext); return INT_CONST; }
 
+<COMMENT><<EOF>>{
+    BEGIN(INITIAL);
+    fprintf(stderr, "ERROR: Unexpected EOF\n");
+    return ERROR;
+}
+
+<STRING_OVERFLOW><<EOF>>{
+    BEGIN(INITIAL);
+    fprintf(stderr, "ERROR: String constant too long\n");
+    fprintf(stderr, "ERROR: Unexpected EOF\n");
+    return ERROR;
+}
+
+<STRING_NULL_ERR><<EOF>>{
+    BEGIN(INITIAL);
+    fprintf(stderr, "ERROR: String contains null character\n");
+    fprintf(stderr, "ERROR: Unexpected EOF\n");
+    return ERROR;
+}
+
+<STRING><<EOF>>{
+    BEGIN(INITIAL);
+    fprintf(stderr, "ERROR: Unexpected EOF\n");
+    return ERROR;
+}
+
  /*
   *  If after all that it comes to this, somehting is wrong.
   */
@@ -373,6 +407,7 @@ RBRACE         \}
     fprintf(stderr, "ERROR: Invalid character\n");
     return ERROR;
 }
+
 %%
 
 #include <string.h>
