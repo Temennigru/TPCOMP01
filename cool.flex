@@ -36,7 +36,7 @@ typedef union MY_YYSTYPE {
     char* cValue;
 } MY_YYSTYPE;
 
-char string_buf[MAX_STR_CONST]; /* to assemble string constants */
+char string_buf[MAX_STR_CONST + 1]; /* to assemble string constants */
 char *string_buf_ptr;
 
 extern int curr_lineno;
@@ -124,6 +124,14 @@ RBRACE         \}
 <COMMENT>{COMMENTBEG}               { comment_count++; BEGIN(COMMENT); }
 <INITIAL>{COMMENTBEG}               { comment_count++; BEGIN(COMMENT); }
 <COMMENT>{COMMENTEND}               { comment_count--; if(comment_count == 0) { BEGIN(INITIAL); } }
+<INITIAL>{COMMENTEND}               { fprintf(stderr, "ERROR: Unmatched *)\n"); return ERROR; }
+
+<COMMENT><<EOF>>{
+    BEGIN(INITIAL);
+    fprintf(stderr, "ERROR: EOF in comment\n");
+    return ERROR;
+}
+
 <COMMENT>{ANYCHAR}                  { break; }
 
 
@@ -202,6 +210,25 @@ RBRACE         \}
 <STRING>\x00 {
     BEGIN(STRING_NULL_ERR);
     break;
+}
+
+<STRING>\\\\0 {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\\'; string_buf[str_size] = '0'; str_size++;
+    }
+}
+
+<STRING>\\0 {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        string_buf[str_size] = '\0';
+        str_size++;
+    }
 }
 
 <STRING>\\\\b {
@@ -316,17 +343,6 @@ RBRACE         \}
     }
 }
 
-<STRING>\\                { ; }
-
-<STRING>{STRINGCHAR}+ {
-    if (str_size >= MAX_STR_CONST) {
-        BEGIN(STRING_OVERFLOW);
-        break;
-    } else {
-        strcpy(&(string_buf[str_size]), yytext);
-    }
-}
-
  /*
   *  Escaped regular characters
   */
@@ -342,27 +358,42 @@ RBRACE         \}
     }
 }
 
+<STRING>\\ { break; }
+
+<STRING>{STRINGCHAR}+ {
+    if (str_size >= MAX_STR_CONST) {
+        BEGIN(STRING_OVERFLOW);
+        break;
+    } else {
+        strcpy(&(string_buf[str_size]), yytext);
+    }
+}
+
 <STRING>{STRINGEND} {
     BEGIN(INITIAL);
+    string_buf[str_size] = '\0'
+    str_size = 0;
     my_yylval.cValue = strdup(string_buf);
     return STRINGEND;
 }
 
 <STRING>\n {
-    str_size = 0;
     BEGIN(INITIAL);
+    str_size = 0;
     fprintf(stderr, "ERROR: Unterminated string constant\n");
     return ERROR;
 }
 
 <STRING_OVERFLOW>{STRINGEND} {
     BEGIN(INITIAL);
+    str_size = 0;
     fprintf(stderr, "ERROR: String constant too long\n");
     return ERROR;
 }
 
 <STRING_NULL_ERR>{STRINGEND} {
     BEGIN(INITIAL);
+    str_size = 0;
     fprintf(stderr, "ERROR: String contains null character\n");
     return ERROR;
 }
@@ -373,21 +404,17 @@ RBRACE         \}
 
 <INITIAL>{DIGIT}+       { my_yylval.iValue=atoi(yytext); return INT_CONST; }
 
-<COMMENT><<EOF>>{
-    BEGIN(INITIAL);
-    fprintf(stderr, "ERROR: Unexpected EOF\n");
-    return ERROR;
-}
-
 <STRING_OVERFLOW><<EOF>>{
     BEGIN(INITIAL);
+    str_size = 0;
     fprintf(stderr, "ERROR: String constant too long\n");
-    fprintf(stderr, "ERROR: Unexpected EOF\n");
+    fprintf(stderr, "ERROR: EOF in string constant\n");
     return ERROR;
 }
 
 <STRING_NULL_ERR><<EOF>>{
     BEGIN(INITIAL);
+    str_size = 0;
     fprintf(stderr, "ERROR: String contains null character\n");
     fprintf(stderr, "ERROR: Unexpected EOF\n");
     return ERROR;
@@ -395,7 +422,8 @@ RBRACE         \}
 
 <STRING><<EOF>>{
     BEGIN(INITIAL);
-    fprintf(stderr, "ERROR: Unexpected EOF\n");
+    str_size = 0;
+    fprintf(stderr, "ERROR: EOF in string constant\n");
     return ERROR;
 }
 
@@ -416,8 +444,11 @@ RBRACE         \}
 int main(int argc, char** argv) {
 	if(argc > 2 && strncmp(argv[1], "-i", 2) != 0) {
 		int filec;
-		
+
 		for(filec = 2; filec <= argc-1; filec++) {
+            comment_count = 0;
+            curr_lineno = 0;
+            str_size = 0;
 			yyin = fopen(argv[filec], "r");
 			yylex();
 		}
