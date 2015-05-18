@@ -65,7 +65,7 @@ extern YYSTYPE cool_yylval;
  */
 
 DIGIT           [0-9]
-WHITESPACE      [ \n\f\r\t\v]
+WHITESPACE      [ \f\r\t\v]
 ENDL            \n
 LINECOMMENT     --[^\n]*
 COMMENTBEG      \(\*
@@ -112,6 +112,10 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
   *  Bool variable for comment mode
   */
 
+<INITIAL>{ENDL}                     { curr_lineno++; }
+<COMMENT>{ENDL}                     { curr_lineno++; }
+
+
 <COMMENT>{COMMENTBEG}               { comment_count++; BEGIN(COMMENT); }
 <INITIAL>{COMMENTBEG}               { comment_count++; BEGIN(COMMENT); }
 <COMMENT>{COMMENTEND}               { comment_count--; if(comment_count == 0) { BEGIN(INITIAL); } }
@@ -134,10 +138,8 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
   *  Ignore these
   */
 
-{ENDL}          { curr_lineno++; }
-
 <INITIAL>{WHITESPACE}    { ; }
-<INITIAL>{LINECOMMENT}   { curr_lineno++; }
+<INITIAL>{LINECOMMENT}   { ; }
 
 <INITIAL>{CLASS}          { return (CLASS); }
 <INITIAL>{ELSE}           { return (ELSE); }
@@ -190,7 +192,7 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
     } else {
-        string_buf[string_cnt] = '\\'; string_buf[string_cnt] = '0'; string_cnt++;
+        string_buf[string_cnt] = '\\'; string_cnt++; string_buf[string_cnt] = '0'; string_cnt++;
     }
 }
 
@@ -207,7 +209,7 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
     } else {
-        string_buf[string_cnt] = '\\'; string_buf[string_cnt] = 'b'; string_cnt++;
+        string_buf[string_cnt] = '\\'; string_cnt++; string_buf[string_cnt] = 'b'; string_cnt++;
     }
 }
 
@@ -224,9 +226,7 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
     } else {
-        string_buf[string_cnt] = '\\';
-        string_buf[string_cnt] = 'f';
-        string_cnt++;
+        string_buf[string_cnt] = '\\'; string_cnt++; string_buf[string_cnt] = 'f'; string_cnt++;
     }
 }
 
@@ -244,6 +244,7 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
         BEGIN(STRING_OVERFLOW);
     } else {
         string_buf[string_cnt] = '\\';
+        string_cnt++;
         string_buf[string_cnt] = 't';
         string_cnt++;
     }
@@ -263,6 +264,7 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
         BEGIN(STRING_OVERFLOW);
     } else {
         string_buf[string_cnt] = '\\';
+        string_cnt++;
         string_buf[string_cnt] = 'n';
         string_cnt++;
     }
@@ -325,6 +327,7 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
         BEGIN(STRING_OVERFLOW);
     } else {
         strcpy(&(string_buf[string_cnt]), yytext);
+        string_cnt += strlen(yytext);
     }
 }
 
@@ -366,7 +369,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING_OVERFLOW><<EOF>> {
     BEGIN(INITIAL);
     string_cnt = 0;
-    cool_yylval.error_msg = "String constant too long";
     cool_yylval.error_msg = "EOF in string constant";
     return ERROR;
 }
@@ -374,10 +376,12 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING_NULL_ERR><<EOF>> {
     BEGIN(INITIAL);
     string_cnt = 0;
-    cool_yylval.error_msg = "String contains null character";
     cool_yylval.error_msg = "Unexpected EOF";
     return ERROR;
 }
+
+<STRING_NULL_ERR>{ENDL} { curr_lineno++; }
+<STRING_OVERFLOW>{ENDL} { curr_lineno++; }
 
 <STRING><<EOF>> {
     BEGIN(INITIAL);
