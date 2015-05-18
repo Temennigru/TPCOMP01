@@ -36,8 +36,8 @@ char *string_buf_ptr;
 
 extern int curr_lineno;
 extern int verbose_flag;
-extern int comment_count;
-extern int str_size;
+int comment_count;
+int string_cnt;
 
 extern YYSTYPE cool_yylval;
 
@@ -66,8 +66,8 @@ COMMENTEND      \*\)
 STRINGBEG       \"
 STRINGEND       \"
 STRINGCHAR     [^\"\0\n\\]
-TYPENAME       [A-Z][A-z0-9_]
-OBJECTNAME     [a-z][A-z0-9_]
+TYPENAME       [A-Z][A-z0-9_]*
+OBJECTNAME     [a-z][A-z0-9_]*
 CLASS          [Cc][Ll][Aa][Ss][Ss]
 ELSE           [Ee][Ll][Ss][Ee]
 IF             [Ii][Ff]
@@ -95,7 +95,7 @@ ASSIGN         <-
 
 
 
-SYMBOL         [-+*/~<\(\){}@=\.,:;] { return yytext[0]; }
+SYMBOL         [-+*/~<\(\){}@=\.,:;]
 
 
 %%
@@ -165,8 +165,8 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;] { return yytext[0]; }
   * which must begin with a lower-case letter.
   */
 
-<INITIAL>{TYPENAME}                  { cool_yylval.symbol = idtable.add_string(yytext); return TYPENAME; }
-<INITIAL>{OBJECTNAME}                { cool_yylval.symbol = idtable.add_string(yytext); return OBJECTNAME; }
+<INITIAL>{TYPENAME}                  { cool_yylval.symbol = idtable.add_string(yytext); return TYPEID; }
+<INITIAL>{OBJECTNAME}                { cool_yylval.symbol = idtable.add_string(yytext); return OBJECTID; }
 
  /*
   *  String constants (C syntax)
@@ -175,7 +175,7 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;] { return yytext[0]; }
   *
   */
 
-<INITIAL>{STRINGBEG}    { str_size = 0; BEGIN(STRING); }
+<INITIAL>{STRINGBEG}    { string_cnt = 0; BEGIN(STRING); }
 
 <STRING>\x00 {
     BEGIN(STRING_NULL_ERR);
@@ -183,133 +183,133 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;] { return yytext[0]; }
 }
 
 <STRING>\\\\0 {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\\'; string_buf[str_size] = '0'; str_size++;
+        string_buf[string_cnt] = '\\'; string_buf[string_cnt] = '0'; string_cnt++;
     }
 }
 
 <STRING>\\0 {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\0';
-        str_size++;
+        string_buf[string_cnt] = '\0';
+        string_cnt++;
     }
 }
 
 <STRING>\\\\b {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\\'; string_buf[str_size] = 'b'; str_size++;
+        string_buf[string_cnt] = '\\'; string_buf[string_cnt] = 'b'; string_cnt++;
     }
 }
 
 <STRING>\\b {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\b';
-        str_size++;
+        string_buf[string_cnt] = '\b';
+        string_cnt++;
     }
 }
 
 <STRING>\\\\f {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\\';
-        string_buf[str_size] = 'f';
-        str_size++;
+        string_buf[string_cnt] = '\\';
+        string_buf[string_cnt] = 'f';
+        string_cnt++;
     }
 }
 
 <STRING>\\f {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\f';
-        str_size++;
+        string_buf[string_cnt] = '\f';
+        string_cnt++;
     }
 }
 
 <STRING>\\\\t {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\\';
-        string_buf[str_size] = 't';
-        str_size++;
+        string_buf[string_cnt] = '\\';
+        string_buf[string_cnt] = 't';
+        string_cnt++;
     }
 }
 
 <STRING>\\t {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\t';
-        str_size++;
+        string_buf[string_cnt] = '\t';
+        string_cnt++;
     }
 }
 
 <STRING>\\\\n {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\\';
-        string_buf[str_size] = 'n';
-        str_size++;
+        string_buf[string_cnt] = '\\';
+        string_buf[string_cnt] = 'n';
+        string_cnt++;
     }
 }
 
 <STRING>\\n {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\n';
-        str_size++;
+        string_buf[string_cnt] = '\n';
+        string_cnt++;
     }
 }
 
 <STRING>\\\n {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\n';
-        str_size++;
+        string_buf[string_cnt] = '\n';
+        string_cnt++;
     }
 }
 
 <STRING>\\\" {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\"';
-        str_size++;
+        string_buf[string_cnt] = '\"';
+        string_cnt++;
     }
 }
 
 <STRING>\\\\ {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        string_buf[str_size] = '\\';
-        str_size++;
+        string_buf[string_cnt] = '\\';
+        string_cnt++;
     }
 }
 
@@ -318,52 +318,52 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;] { return yytext[0]; }
   */
 
 <STRING>\\{STRINGCHAR} {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
         /* Append character after '\\' */
-        string_buf[str_size] = yytext[1];
-        str_size++;
+        string_buf[string_cnt] = yytext[1];
+        string_cnt++;
     }
 }
 
 <STRING>\\ { break; }
 
 <STRING>{STRINGCHAR}+ {
-    if (str_size >= MAX_STR_CONST) {
+    if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
         break;
     } else {
-        strcpy(&(string_buf[str_size]), yytext);
+        strcpy(&(string_buf[string_cnt]), yytext);
     }
 }
 
 <STRING>{STRINGEND} {
     BEGIN(INITIAL);
-    string_buf[str_size] = '\0'
-    str_size = 0;
+    string_buf[string_cnt] = '\0';
+    string_cnt = 0;
     cool_yylval.symbol = stringtable.add_string(string_buf);
     return STR_CONST;
 }
 
 <STRING>\n {
     BEGIN(INITIAL);
-    str_size = 0;
+    string_cnt = 0;
     cool_yylval.error_msg = "Unterminated string constant";
     return ERROR;
 }
 
 <STRING_OVERFLOW>{STRINGEND} {
     BEGIN(INITIAL);
-    str_size = 0;
+    string_cnt = 0;
     cool_yylval.error_msg = "String constant too long";
     return ERROR;
 }
 
 <STRING_NULL_ERR>{STRINGEND} {
     BEGIN(INITIAL);
-    str_size = 0;
+    string_cnt = 0;
     cool_yylval.error_msg = "String contains null character";
     return ERROR;
 }
@@ -376,7 +376,7 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;] { return yytext[0]; }
 
 <STRING_OVERFLOW><<EOF>> {
     BEGIN(INITIAL);
-    str_size = 0;
+    string_cnt = 0;
     cool_yylval.error_msg = "String constant too long";
     cool_yylval.error_msg = "EOF in string constant";
     return ERROR;
@@ -384,7 +384,7 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;] { return yytext[0]; }
 
 <STRING_NULL_ERR><<EOF>> {
     BEGIN(INITIAL);
-    str_size = 0;
+    string_cnt = 0;
     cool_yylval.error_msg = "String contains null character";
     cool_yylval.error_msg = "Unexpected EOF";
     return ERROR;
@@ -392,7 +392,7 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;] { return yytext[0]; }
 
 <STRING><<EOF>> {
     BEGIN(INITIAL);
-    str_size = 0;
+    string_cnt = 0;
     cool_yylval.error_msg = "EOF in string constant";
     return ERROR;
 }
