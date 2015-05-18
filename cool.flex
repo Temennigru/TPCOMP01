@@ -110,15 +110,13 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <COMMENT>{COMMENTEND}               { comment_count--; if(comment_count == 0) { BEGIN(INITIAL); } }
 <INITIAL>{COMMENTEND}               { cool_yylval.error_msg = "Unmatched *)\n"; return ERROR; }
 
- /*
- *<COMMENT><<EOF>>{
- *   BEGIN(INITIAL);
- *   cool_yylval.error_msg = "EOF in comment";
- *   return ERROR;
- *}
- */
+<COMMENT><<EOF>> {
+    BEGIN(INITIAL);
+    cool_yylval.error_msg = "EOF in comment";
+    return ERROR;
+}
 
-<COMMENT>{ANYCHAR}                  { break; }
+<COMMENT>{ANYCHAR}                  { ; }
 
 
  /*
@@ -131,8 +129,8 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 
 {ENDL}          { curr_lineno++; }
 
-{WHITESPACE}    { break; }
-{LINECOMMENT}   { curr_lineno++; break; }
+<INITIAL>{WHITESPACE}    { ; }
+<INITIAL>{LINECOMMENT}   { curr_lineno++; }
 
 <INITIAL>{CLASS}          { return (CLASS); }
 <INITIAL>{ELSE}           { return (ELSE); }
@@ -179,13 +177,11 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 
 <STRING>\x00 {
     BEGIN(STRING_NULL_ERR);
-    break;
 }
 
 <STRING>\\\\0 {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\\'; string_buf[string_cnt] = '0'; string_cnt++;
     }
@@ -194,7 +190,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\0 {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\0';
         string_cnt++;
@@ -204,7 +199,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\\\b {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\\'; string_buf[string_cnt] = 'b'; string_cnt++;
     }
@@ -213,7 +207,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\b {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\b';
         string_cnt++;
@@ -223,7 +216,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\\\f {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\\';
         string_buf[string_cnt] = 'f';
@@ -234,7 +226,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\f {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\f';
         string_cnt++;
@@ -244,7 +235,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\\\t {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\\';
         string_buf[string_cnt] = 't';
@@ -255,7 +245,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\t {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\t';
         string_cnt++;
@@ -265,7 +254,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\\\n {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\\';
         string_buf[string_cnt] = 'n';
@@ -276,7 +264,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\n {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\n';
         string_cnt++;
@@ -286,7 +273,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\\n {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\n';
         string_cnt++;
@@ -296,7 +282,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\\" {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\"';
         string_cnt++;
@@ -306,7 +291,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\\\ {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         string_buf[string_cnt] = '\\';
         string_cnt++;
@@ -320,7 +304,6 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
 <STRING>\\{STRINGCHAR} {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         /* Append character after '\\' */
         string_buf[string_cnt] = yytext[1];
@@ -328,12 +311,11 @@ SYMBOL         [-+*/~<\(\){}@=\.,:;]
     }
 }
 
-<STRING>\\ { break; }
+<STRING>\\ { ; }
 
 <STRING>{STRINGCHAR}+ {
     if (string_cnt >= MAX_STR_CONST) {
         BEGIN(STRING_OVERFLOW);
-        break;
     } else {
         strcpy(&(string_buf[string_cnt]), yytext);
     }
