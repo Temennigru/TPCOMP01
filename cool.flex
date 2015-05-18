@@ -7,6 +7,13 @@
  *  output, so headers and global definitions are placed here to be visible
  * to the code in the file.  Don't remove anything that was here initially
  */
+
+/*
+ * RECADO AO MONITOR
+ * PELO AMOR DE DEUS nao nos faca fazer mais tps onde os arquivos que deveriam ser gerados
+ * automaticamente sao hard-coded e nos nao temos acesso a eles.
+ */
+
 %{
 #include <cool-parse.h>
 #include <stringtab.h>
