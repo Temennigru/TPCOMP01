@@ -31,11 +31,6 @@ extern FILE *fin; /* we read from this file */
 	if ( (result = fread( (char*)buf, sizeof(char), max_size, fin)) < 0) \
 		YY_FATAL_ERROR( "read() in flex scanner failed");
 
-typedef union MY_YYSTYPE {
-    int iValue;
-    char* cValue;
-} MY_YYSTYPE;
-
 char string_buf[MAX_STR_CONST + 1]; /* to assemble string constants */
 char *string_buf_ptr;
 
@@ -44,7 +39,7 @@ extern int verbose_flag;
 extern int comment_count;
 extern int str_size;
 
-extern MY_YYSTYPE my_yylval;
+extern YYSTYPE cool_yylval;
 
 /*
  *  Add Your own definitions here
@@ -92,28 +87,17 @@ OF             [Oo][Ff]
 NOT            [Nn][Oo][Tt]
 TRUE           t[Rr][Uu][Ee]
 FALSE          f[Aa][Ll][Ss][Ee]
-AT             @
 ANYCHAR        .|\r
 
 DARROW         =>
-MULT           \*
-DOT            \.
-SEMI           ;
-DIV            \/
-PLUS           \+
-
-MINUS          -
-NEG            ~
-LPAREN         \(
-RPAREN         \)
-LT             \<
 LE             <=
-COMMA          ,
-EQ             =
 ASSIGN         <-
-COLON          \:
-LBRACE         \{
-RBRACE         \}
+
+
+
+SYMBOL         [-+*/~<\(\){}@=\.,:;] { return yytext[0]; }
+
+
 %%
 
  /*
@@ -124,13 +108,15 @@ RBRACE         \}
 <COMMENT>{COMMENTBEG}               { comment_count++; BEGIN(COMMENT); }
 <INITIAL>{COMMENTBEG}               { comment_count++; BEGIN(COMMENT); }
 <COMMENT>{COMMENTEND}               { comment_count--; if(comment_count == 0) { BEGIN(INITIAL); } }
-<INITIAL>{COMMENTEND}               { fprintf(stderr, "ERROR: Unmatched *)\n"); return ERROR; }
+<INITIAL>{COMMENTEND}               { cool_yylval.error_msg = "Unmatched *)\n"; return ERROR; }
 
-<COMMENT><<EOF>>{
-    BEGIN(INITIAL);
-    fprintf(stderr, "ERROR: EOF in comment\n");
-    return ERROR;
-}
+ /*
+ *<COMMENT><<EOF>>{
+ *   BEGIN(INITIAL);
+ *   cool_yylval.error_msg = "EOF in comment";
+ *   return ERROR;
+ *}
+ */
 
 <COMMENT>{ANYCHAR}                  { break; }
 
@@ -166,28 +152,12 @@ RBRACE         \}
 <INITIAL>{OF}             { return (OF); }
 
 <INITIAL>{NOT}            { return (NOT); }
-<INITIAL>{TRUE}           { return (TRUE); }
-<INITIAL>{FALSE}          { return (FALSE); }
-<INITIAL>{AT}             { return (AT); }
-<INITIAL>{DARROW}		      { return (DARROW); }
-<INITIAL>{MULT}           { return (MULT); }
-<INITIAL>{DOT}            { return (DOT); }
-<INITIAL>{SEMI}           { return (SEMI); }
-<INITIAL>{DIV}            { return (DIV); }
-
-<INITIAL>{PLUS}           { return (PLUS); }
-<INITIAL>{MINUS}          { return (MINUS); }
-<INITIAL>{NEG}            { return (NEG); }
-<INITIAL>{LPAREN}         { return (LPAREN); }
-<INITIAL>{RPAREN}         { return (RPAREN); }
-<INITIAL>{LT}             { return (LT); }
+<INITIAL>{TRUE}           { cool_yylval.boolean = true; return (BOOL_CONST); }
+<INITIAL>{FALSE}          { cool_yylval.boolean = false; return (BOOL_CONST); }
+<INITIAL>{DARROW}		  { return (DARROW); }
 <INITIAL>{LE}             { return (LE); }
-<INITIAL>{COMMA}          { return (COMMA); }
-<INITIAL>{EQ}             { return (EQ); }
 <INITIAL>{ASSIGN}         { return (ASSIGN); }
-<INITIAL>{COLON}          { return (COLON); }
-<INITIAL>{LBRACE}         { return (LBRACE); }
-<INITIAL>{RBRACE}         { return (RBRACE); }
+<INITIAL>{SYMBOL}         { return yytext[0]; }
 
 
  /*
@@ -195,8 +165,8 @@ RBRACE         \}
   * which must begin with a lower-case letter.
   */
 
-<INITIAL>{TYPENAME}                  { my_yylval.cValue = strdup(yytext); return TYPENAME; }
-<INITIAL>{OBJECTNAME}                { my_yylval.cValue = strdup(yytext); return OBJECTNAME; }
+<INITIAL>{TYPENAME}                  { cool_yylval.symbol = idtable.add_string(yytext); return TYPENAME; }
+<INITIAL>{OBJECTNAME}                { cool_yylval.symbol = idtable.add_string(yytext); return OBJECTNAME; }
 
  /*
   *  String constants (C syntax)
@@ -373,28 +343,28 @@ RBRACE         \}
     BEGIN(INITIAL);
     string_buf[str_size] = '\0'
     str_size = 0;
-    my_yylval.cValue = strdup(string_buf);
-    return STRINGEND;
+    cool_yylval.symbol = stringtable.add_string(string_buf);
+    return STR_CONST;
 }
 
 <STRING>\n {
     BEGIN(INITIAL);
     str_size = 0;
-    fprintf(stderr, "ERROR: Unterminated string constant\n");
+    cool_yylval.error_msg = "Unterminated string constant";
     return ERROR;
 }
 
 <STRING_OVERFLOW>{STRINGEND} {
     BEGIN(INITIAL);
     str_size = 0;
-    fprintf(stderr, "ERROR: String constant too long\n");
+    cool_yylval.error_msg = "String constant too long";
     return ERROR;
 }
 
 <STRING_NULL_ERR>{STRINGEND} {
     BEGIN(INITIAL);
     str_size = 0;
-    fprintf(stderr, "ERROR: String contains null character\n");
+    cool_yylval.error_msg = "String contains null character";
     return ERROR;
 }
 
@@ -402,60 +372,39 @@ RBRACE         \}
   *  Integer constant
   */
 
-<INITIAL>{DIGIT}+       { my_yylval.iValue=atoi(yytext); return INT_CONST; }
+<INITIAL>{DIGIT}+       { cool_yylval.symbol = inttable.add_string(yytext); return INT_CONST; }
 
-<STRING_OVERFLOW><<EOF>>{
+<STRING_OVERFLOW><<EOF>> {
     BEGIN(INITIAL);
     str_size = 0;
-    fprintf(stderr, "ERROR: String constant too long\n");
-    fprintf(stderr, "ERROR: EOF in string constant\n");
+    cool_yylval.error_msg = "String constant too long";
+    cool_yylval.error_msg = "EOF in string constant";
     return ERROR;
 }
 
-<STRING_NULL_ERR><<EOF>>{
+<STRING_NULL_ERR><<EOF>> {
     BEGIN(INITIAL);
     str_size = 0;
-    fprintf(stderr, "ERROR: String contains null character\n");
-    fprintf(stderr, "ERROR: Unexpected EOF\n");
+    cool_yylval.error_msg = "String contains null character";
+    cool_yylval.error_msg = "Unexpected EOF";
     return ERROR;
 }
 
-<STRING><<EOF>>{
+<STRING><<EOF>> {
     BEGIN(INITIAL);
     str_size = 0;
-    fprintf(stderr, "ERROR: EOF in string constant\n");
+    cool_yylval.error_msg = "EOF in string constant";
     return ERROR;
 }
+
 
  /*
   *  If after all that it comes to this, somehting is wrong.
   */
 
 .|\n {
-    fprintf(stderr, "ERROR: Invalid character\n");
+    cool_yylval.error_msg = "Invalid character";
     return ERROR;
 }
 
 %%
-
-#include <string.h>
-#include <stdio.h>
-
-int main(int argc, char** argv) {
-	if(argc > 2 && strncmp(argv[1], "-i", 2) != 0) {
-		int filec;
-
-		for(filec = 2; filec <= argc-1; filec++) {
-            comment_count = 0;
-            curr_lineno = 0;
-            str_size = 0;
-			yyin = fopen(argv[filec], "r");
-			yylex();
-		}
-	} else {
-		printf("Invalid input.\nUsage: tpcomp01 -i [files]\n");
-		return -1;
-	}
-	
-	return 0;
-}
